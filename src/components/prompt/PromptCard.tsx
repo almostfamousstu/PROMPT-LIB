@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreVertical, Pencil, Trash2, Copy } from 'lucide-react';
 import { type Prompt } from '@/types';
+import { RelativeTime } from '@/components/prompt/RelativeTime';
 
 interface PromptCardProps {
   prompt: Prompt;
@@ -23,7 +23,9 @@ export function PromptCard({ prompt, onDuplicate, onDelete }: PromptCardProps) {
               {prompt.title}
             </Link>
           </CardTitle>
-          <p className="text-xs text-muted-foreground">Updated {formatDistanceToNow(new Date(prompt.updated_at))} ago</p>
+          <p className="text-xs text-muted-foreground">
+            Updated <RelativeTime value={prompt.updated_at} addSuffix />
+          </p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

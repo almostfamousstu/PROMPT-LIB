@@ -10,9 +10,9 @@ import Fuse from 'fuse.js';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
 import { Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { RelativeTime } from '@/components/prompt/RelativeTime';
 
 interface PromptListProps {
   prompts: Prompt[];
@@ -151,7 +151,7 @@ export function PromptList({ prompts, query, tag, folder }: PromptListProps) {
                   </TableCell>
                   <TableCell>{prompt.folder}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatDistanceToNow(new Date(prompt.updated_at), { addSuffix: true })}
+                    <RelativeTime value={prompt.updated_at} addSuffix />
                   </TableCell>
                   <TableCell className="space-x-2 text-right">
                     <Button variant="ghost" size="sm" onClick={() => handleCopy(prompt)}>
