@@ -19,6 +19,16 @@ pnpm install
 pnpm dev
 ```
 
+### Run with Docker
+
+Build and start the production image locally:
+
+```bash
+docker compose up --build
+```
+
+The container exposes the app on [http://localhost:3000](http://localhost:3000). It reads configuration from `.env.local`, so be sure to create one (see the environment section below).
+
 ### Environment
 
 Copy `.env.example` to `.env.local` and update:
