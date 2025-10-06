@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useOptimistic, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { PromptCard } from '@/components/prompt/PromptCard';
 import type { Prompt } from '@/types';
@@ -19,22 +19,36 @@ interface PromptListProps {
   query?: string;
   tag?: string;
   folder?: string;
+  isLoading?: boolean;
+  isRefreshing?: boolean;
+  onChanged?: () => Promise<void> | void;
 }
 
 type ViewMode = 'grid' | 'list';
 
-export function PromptList({ prompts, query, tag, folder }: PromptListProps) {
-  const [optimisticPrompts, setOptimisticPrompts] = useOptimistic(prompts, (state, update: { type: 'delete'; id: string }) => {
-    if (update.type === 'delete') {
-      return state.filter((prompt) => prompt.id !== update.id);
-    }
-    return state;
-  });
+export function PromptList({
+  prompts,
+  query,
+  tag,
+  folder,
+  isLoading = false,
+  isRefreshing = false,
+  onChanged
+}: PromptListProps) {
+  const [localPrompts, setLocalPrompts] = useState(prompts);
   const [isPending, startTransition] = useTransition();
   const [view, setView] = useState<ViewMode>('grid');
 
+  useEffect(() => {
+    setLocalPrompts(prompts);
+  }, [prompts]);
+
+  const refreshFromServer = async () => {
+    await onChanged?.();
+  };
+
   const filteredPrompts = useMemo(() => {
-    let result = optimisticPrompts;
+    let result = localPrompts;
     if (folder) {
       result = result.filter((prompt) => prompt.folder === folder);
     }
@@ -49,33 +63,37 @@ export function PromptList({ prompts, query, tag, folder }: PromptListProps) {
       result = fuse.search(query).map((item) => item.item);
     }
     return result;
-  }, [folder, optimisticPrompts, query, tag]);
+  }, [folder, localPrompts, query, tag]);
 
   const handleDuplicate = (id: string) => {
-    startTransition(async () => {
-      const promise = duplicatePrompt(id);
+    startTransition(() => {
+      const promise = duplicatePrompt(id).then(async () => {
+        await refreshFromServer();
+      });
       toast.promise(promise, {
         loading: 'Duplicating prompt…',
         success: 'Prompt duplicated',
         error: 'Failed to duplicate prompt'
       });
-      await promise;
     });
   };
 
   const handleDelete = (id: string) => {
-    setOptimisticPrompts({ type: 'delete', id });
-    startTransition(async () => {
-      const promise = deletePrompt(id);
+    setLocalPrompts((current) => current.filter((prompt) => prompt.id !== id));
+    startTransition(() => {
+      const promise = deletePrompt(id)
+        .then(async () => {
+          await refreshFromServer();
+        })
+        .catch(async (error) => {
+          await refreshFromServer();
+          throw error;
+        });
       toast.promise(promise, {
         loading: 'Deleting prompt…',
         success: 'Prompt deleted',
-        error: (err) => {
-          setOptimisticPrompts((state) => state);
-          return err.message ?? 'Failed to delete prompt';
-        }
+        error: (err) => err.message ?? 'Failed to delete prompt'
       });
-      await promise;
     });
   };
 
@@ -84,13 +102,22 @@ export function PromptList({ prompts, query, tag, folder }: PromptListProps) {
     toast.success('Prompt copied to clipboard');
   };
 
-  if (!filteredPrompts.length && !isPending) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="h-40 animate-pulse rounded-lg border border-dashed bg-muted/40" />
+        ))}
+      </div>
+    );
+  }
+
+  if (!filteredPrompts.length && !isPending && !isRefreshing) {
     return (
       <div className="flex h-full flex-1 flex-col items-center justify-center space-y-4 rounded-lg border border-dashed p-12 text-center">
         <h3 className="text-lg font-semibold">No prompts yet</h3>
         <p className="max-w-md text-sm text-muted-foreground">
-          Create your first prompt to build a reusable library. Optimise them with AI, add tags, and keep versions to ensure your
-          team stays in sync.
+          Create your first prompt to build a reusable library. Optimise them with AI, add tags, and keep versions to ensure your team stays in sync.
         </p>
         <Button asChild>
           <Link href="/prompts/new">Create prompt</Link>
@@ -104,6 +131,8 @@ export function PromptList({ prompts, query, tag, folder }: PromptListProps) {
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           Showing {filteredPrompts.length} {filteredPrompts.length === 1 ? 'prompt' : 'prompts'}
+          {isPending && ' (updating…)'}
+          {isRefreshing && ' (refreshing…)'}
         </p>
         <div className="flex gap-2">
           <Button variant={view === 'grid' ? 'secondary' : 'outline'} size="sm" onClick={() => setView('grid')}>
@@ -148,9 +177,9 @@ export function PromptList({ prompts, query, tag, folder }: PromptListProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {prompt.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="capitalize">
-                          {tag}
+                      {prompt.tags.map((tagValue) => (
+                        <Badge key={tagValue} variant="secondary" className="capitalize">
+                          {tagValue}
                         </Badge>
                       ))}
                     </div>
