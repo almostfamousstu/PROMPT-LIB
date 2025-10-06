@@ -6,6 +6,7 @@ import { AppSidebar } from '@/components/shell/AppSidebar';
 import { AppTopbar } from '@/components/shell/AppTopbar';
 import { PromptList } from '@/components/prompt/PromptList';
 import type { Prompt } from '@/types';
+import { normalizePrompt } from '@/lib/utils';
 
 interface PageProps {
   searchParams: {
@@ -31,7 +32,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false });
 
-  const typedPrompts = (prompts ?? []) as unknown as Prompt[];
+  const typedPrompts: Prompt[] = (prompts ?? []).map(normalizePrompt);
   const folders = Array.from(new Set(typedPrompts.map((prompt) => prompt.folder))).filter((folder) => folder !== 'Library');
   const tags = Array.from(new Set(typedPrompts.flatMap((prompt) => prompt.tags))).filter(Boolean);
 

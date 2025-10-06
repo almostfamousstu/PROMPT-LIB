@@ -71,7 +71,7 @@ export const duplicatePrompt = async (id: string) => {
     .insert({
       title: `${prompt.title} (Copy)`,
       body_md: prompt.body_md,
-      tags: prompt.tags,
+      tags: Array.isArray(prompt.tags) ? prompt.tags : [],
       folder: prompt.folder,
       user_id: user.id
     })

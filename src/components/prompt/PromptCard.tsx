@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Pencil, Trash2, Copy } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, Copy, CopyPlus } from 'lucide-react';
 import { type Prompt } from '@/types';
 import { RelativeTime } from '@/components/prompt/RelativeTime';
 
@@ -11,9 +11,10 @@ interface PromptCardProps {
   prompt: Prompt;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
+  onCopy: (prompt: Prompt) => void;
 }
 
-export function PromptCard({ prompt, onDuplicate, onDelete }: PromptCardProps) {
+export function PromptCard({ prompt, onDuplicate, onDelete, onCopy }: PromptCardProps) {
   return (
     <Card className="flex h-full flex-col">
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
@@ -40,8 +41,12 @@ export function PromptCard({ prompt, onDuplicate, onDelete }: PromptCardProps) {
                 Edit
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDuplicate(prompt.id)} className="flex items-center gap-2">
+            <DropdownMenuItem onClick={() => onCopy(prompt)} className="flex items-center gap-2">
               <Copy className="h-4 w-4" />
+              Copy prompt
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onDuplicate(prompt.id)} className="flex items-center gap-2">
+              <CopyPlus className="h-4 w-4" />
               Duplicate
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onDelete(prompt.id)} className="flex items-center gap-2 text-destructive">
@@ -68,10 +73,16 @@ export function PromptCard({ prompt, onDuplicate, onDelete }: PromptCardProps) {
             Open
           </Link>
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => onDuplicate(prompt.id)} className="gap-2">
-          <Copy className="h-4 w-4" />
-          Duplicate
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={() => onCopy(prompt)} className="gap-2">
+            <Copy className="h-4 w-4" />
+            Copy
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => onDuplicate(prompt.id)} className="gap-2">
+            <CopyPlus className="h-4 w-4" />
+            Duplicate
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );

@@ -117,7 +117,13 @@ export function PromptList({ prompts, query, tag, folder }: PromptListProps) {
       {view === 'grid' ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredPrompts.map((prompt) => (
-            <PromptCard key={prompt.id} prompt={prompt} onDuplicate={handleDuplicate} onDelete={handleDelete} />
+            <PromptCard
+              key={prompt.id}
+              prompt={prompt}
+              onDuplicate={handleDuplicate}
+              onDelete={handleDelete}
+              onCopy={handleCopy}
+            />
           ))}
         </div>
       ) : (

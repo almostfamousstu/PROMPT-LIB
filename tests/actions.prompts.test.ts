@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { __setActionClient, createPrompt, searchPrompts } from '@/actions/prompts';
 
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn()
+}));
+
 const user = { id: 'user-1' };
 let stub: ReturnType<typeof createSupabaseStub>;
 
