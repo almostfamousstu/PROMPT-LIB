@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { Database } from '@/lib/db';
 import { DashboardShell } from '@/components/shell/DashboardShell';
+import { normalizePrompt } from '@/lib/utils';
 
 interface PageProps {
   searchParams: {
@@ -22,6 +23,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     redirect('/sign-in');
   }
 
+  const { data: promptRows, error: promptError } = await supabase
+    .from('prompts')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('updated_at', { ascending: false });
+
+  const initialPrompts = (promptRows ?? []).map(normalizePrompt);
+
   return (
     <DashboardShell
       userId={user.id}
@@ -29,6 +38,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       initialQuery={searchParams.q}
       initialFolder={searchParams.folder}
       initialTag={searchParams.tag}
+      initialPrompts={initialPrompts}
+      initialError={promptError?.message}
     />
   );
 }

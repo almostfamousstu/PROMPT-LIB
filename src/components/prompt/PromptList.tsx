@@ -10,9 +10,22 @@ import Fuse from 'fuse.js';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { Copy } from 'lucide-react';
+import { Copy, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RelativeTime } from '@/components/prompt/RelativeTime';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+const SAMPLE_ATTRIBUTE_SNIPPET = `{
+  "Color": "Red",
+  "Material": "Steel"
+}`;
 
 interface PromptListProps {
   prompts: Prompt[];
@@ -38,6 +51,7 @@ export function PromptList({
   const [localPrompts, setLocalPrompts] = useState(prompts);
   const [isPending, startTransition] = useTransition();
   const [view, setView] = useState<ViewMode>('grid');
+  const [previewPrompt, setPreviewPrompt] = useState<Prompt | null>(null);
 
   useEffect(() => {
     setLocalPrompts(prompts);
@@ -102,6 +116,22 @@ export function PromptList({
     toast.success('Prompt copied to clipboard');
   };
 
+  const openPreview = (prompt: Prompt) => {
+    setPreviewPrompt(prompt);
+  };
+
+  useEffect(() => {
+    if (!previewPrompt) {
+      return;
+    }
+    const updated = localPrompts.find((item) => item.id === previewPrompt.id);
+    if (updated) {
+      setPreviewPrompt(updated);
+    } else {
+      setPreviewPrompt(null);
+    }
+  }, [localPrompts, previewPrompt]);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -127,12 +157,13 @@ export function PromptList({
   }
 
   return (
-    <div className="flex-1 space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Showing {filteredPrompts.length} {filteredPrompts.length === 1 ? 'prompt' : 'prompts'}
-          {isPending && ' (updating…)'}
-          {isRefreshing && ' (refreshing…)'}
+    <>
+      <div className="flex-1 space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {filteredPrompts.length} {filteredPrompts.length === 1 ? 'prompt' : 'prompts'}
+            {isPending && ' (updating…)'}
+            {isRefreshing && ' (refreshing…)'}
         </p>
         <div className="flex gap-2">
           <Button variant={view === 'grid' ? 'secondary' : 'outline'} size="sm" onClick={() => setView('grid')}>
@@ -152,6 +183,7 @@ export function PromptList({
               onDuplicate={handleDuplicate}
               onDelete={handleDelete}
               onCopy={handleCopy}
+              onPreview={openPreview}
             />
           ))}
         </div>
@@ -189,6 +221,9 @@ export function PromptList({
                     <RelativeTime value={prompt.updated_at} addSuffix />
                   </TableCell>
                   <TableCell className="space-x-2 text-right">
+                    <Button variant="ghost" size="sm" onClick={() => openPreview(prompt)}>
+                      <Eye className="mr-1 h-4 w-4" /> View
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleCopy(prompt)}>
                       <Copy className="mr-1 h-4 w-4" /> Copy
                     </Button>
@@ -202,6 +237,70 @@ export function PromptList({
           </Table>
         </div>
       )}
-    </div>
+      </div>
+      <Dialog open={Boolean(previewPrompt)} onOpenChange={(open) => !open && setPreviewPrompt(null)}>
+        <DialogContent className="max-w-3xl gap-6">
+          {previewPrompt ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl font-semibold">{previewPrompt.title}</DialogTitle>
+                <DialogDescription className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Last updated</span>
+                  <RelativeTime value={previewPrompt.updated_at} addSuffix />
+                  <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs uppercase tracking-wide text-muted-foreground">
+                    {previewPrompt.folder}
+                  </span>
+                </DialogDescription>
+              </DialogHeader>
+              <ScrollArea className="max-h-[60vh] rounded-md border bg-muted/30 p-4">
+                <pre className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                  {previewPrompt.body_md}
+                </pre>
+              </ScrollArea>
+              <details className="w-full rounded-md border border-dashed bg-background p-3 text-xs text-muted-foreground">
+                <summary className="cursor-pointer font-medium text-foreground">Need a JSON attribute template?</summary>
+                <pre className="mt-2 whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-foreground/80">
+                  {SAMPLE_ATTRIBUTE_SNIPPET}
+                </pre>
+              </details>
+              <div className="flex flex-wrap gap-2">
+                {previewPrompt.tags.length ? (
+                  previewPrompt.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="capitalize">
+                      #{tag}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-xs text-muted-foreground">No tags</span>
+                )}
+              </div>
+              <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Use the actions to copy, duplicate, or jump into the editor for full control.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" asChild>
+                    <Link href={`/prompts/${previewPrompt.id}`}>Open in editor</Link>
+                  </Button>
+                  <Button variant="secondary" onClick={() => previewPrompt && void handleCopy(previewPrompt)}>
+                    <Copy className="mr-2 h-4 w-4" /> Copy prompt
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (!previewPrompt) return;
+                      setPreviewPrompt(null);
+                      handleDuplicate(previewPrompt.id);
+                    }}
+                  >
+                    Duplicate
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

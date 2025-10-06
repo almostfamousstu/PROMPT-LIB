@@ -18,6 +18,8 @@ interface DashboardShellProps {
   initialQuery?: string;
   initialFolder?: string;
   initialTag?: string;
+  initialPrompts: Prompt[];
+  initialError?: string | null;
 }
 
 export function DashboardShell({
@@ -25,14 +27,24 @@ export function DashboardShell({
   userEmail,
   initialQuery,
   initialFolder,
-  initialTag
+  initialTag,
+  initialPrompts,
+  initialError
 }: DashboardShellProps) {
   const supabase = useMemo(() => createClientComponentClient<Database>(), []);
   const searchParams = useSearchParams();
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [prompts, setPrompts] = useState<Prompt[]>(initialPrompts);
+  const [isLoading, setIsLoading] = useState(initialPrompts.length === 0 && !initialError);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError ?? null);
+
+  useEffect(() => {
+    setPrompts(initialPrompts);
+  }, [initialPrompts]);
+
+  useEffect(() => {
+    setError(initialError ?? null);
+  }, [initialError]);
 
   const refreshPrompts = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -53,7 +65,8 @@ export function DashboardShell({
           throw queryError;
         }
 
-        setPrompts((data ?? []).map(normalizePrompt));
+        const normalized = (data ?? []).map(normalizePrompt);
+        setPrompts(normalized);
         setError(null);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load prompts';
@@ -74,8 +87,8 @@ export function DashboardShell({
   );
 
   useEffect(() => {
-    refreshPrompts();
-  }, [refreshPrompts]);
+    refreshPrompts({ silent: initialPrompts.length > 0 });
+  }, [refreshPrompts, initialPrompts.length]);
 
   const query = searchParams.get('q') ?? initialQuery ?? undefined;
   const folder = searchParams.get('folder') ?? initialFolder ?? undefined;

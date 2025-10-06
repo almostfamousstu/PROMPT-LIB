@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Pencil, Trash2, Copy, CopyPlus } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, Copy, CopyPlus, Eye } from 'lucide-react';
 import { type Prompt } from '@/types';
 import { RelativeTime } from '@/components/prompt/RelativeTime';
 
@@ -12,9 +12,10 @@ interface PromptCardProps {
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
   onCopy: (prompt: Prompt) => void;
+  onPreview?: (prompt: Prompt) => void;
 }
 
-export function PromptCard({ prompt, onDuplicate, onDelete, onCopy }: PromptCardProps) {
+export function PromptCard({ prompt, onDuplicate, onDelete, onCopy, onPreview }: PromptCardProps) {
   return (
     <Card className="flex h-full flex-col">
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
@@ -41,6 +42,12 @@ export function PromptCard({ prompt, onDuplicate, onDelete, onCopy }: PromptCard
                 Edit
               </Link>
             </DropdownMenuItem>
+            {onPreview ? (
+              <DropdownMenuItem onClick={() => onPreview(prompt)} className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                Quick view
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem onClick={() => onCopy(prompt)} className="flex items-center gap-2">
               <Copy className="h-4 w-4" />
               Copy prompt
@@ -74,6 +81,12 @@ export function PromptCard({ prompt, onDuplicate, onDelete, onCopy }: PromptCard
           </Link>
         </Button>
         <div className="flex gap-2">
+          {onPreview ? (
+            <Button variant="ghost" size="sm" onClick={() => onPreview(prompt)} className="gap-2">
+              <Eye className="h-4 w-4" />
+              View
+            </Button>
+          ) : null}
           <Button variant="ghost" size="sm" onClick={() => onCopy(prompt)} className="gap-2">
             <Copy className="h-4 w-4" />
             Copy
